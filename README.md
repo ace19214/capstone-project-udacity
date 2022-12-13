@@ -118,7 +118,7 @@ The id of an item that should be updated is passed as a URL parameter.
 
 It should return an empty body.
 
-* `DeleteTodo` - should delete a TODO item created by a current user. Expects an id of a TODO item to remove.
+* `DeleteTodo` - should delete a TODO item created by a current user & delete S3 bucket object belong to this TODO item (if exist). Expects an id of a TODO item to remove.
 
 It should return an empty body.
 

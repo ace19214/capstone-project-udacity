@@ -1,10 +1,11 @@
 import { CustomAuthorizerEvent, CustomAuthorizerResult } from 'aws-lambda'
 import 'source-map-support/register'
 
-import { verify } from 'jsonwebtoken'
+import { verify, decode } from 'jsonwebtoken'
 import { createLogger } from '../../utils/logger'
-import { JwtPayload } from '../../auth/JwtPayload'
 import Axios from 'axios'
+import { Jwt } from '../../auth/Jwt'
+import { JwtPayload } from '../../auth/JwtPayload'
 
 const logger = createLogger('auth')
 
@@ -54,23 +55,33 @@ export const handler = async (
 }
 
 async function verifyToken(authHeader: string): Promise<JwtPayload> {
+  const token = getToken(authHeader)
+  const jwt: Jwt = decode(token, { complete: true }) as Jwt
 
+  // TODO: Implement token verification
+  // You should implement it similarly to how it was implemented for the exercise for the lesson 5
+  // You can read more about how to do this here: https://auth0.com/blog/navigating-rs256-and-jwks/
+  let secretKey: string
   try {
-    const token = getToken(authHeader)
-    // const jwt: Jwt = decode(token, { complete: true }) as Jwt
-
-    // TODO: Implement token verification
-    // You should implement it similarly to how it was implemented for the exercise for the lesson 5
-    // You can read more about how to do this here: https://auth0.com/blog/navigating-rs256-and-jwks/
-    const dataArr = await Axios.get(jwksUrl);
-    const pemData = dataArr['data']['keys'][0]['x5c'][0]
-    const cert = `-----BEGIN CERTIFICATE-----\n${pemData}\n-----END CERTIFICATE-----`;
-    return verify(token, cert, {algorithms: ['RS256']}) as JwtPayload
-    
-  } catch (error) {
-      logger.info('Fail to authenticate', error)
+    const keysArr = await Axios.get(jwksUrl)
+    // Extract x509 certificate chain
+    const key = keysArr['data']['keys'][0]['x5c'][0]
+    secretKey = `-----BEGIN CERTIFICATE-----\n${key}\n-----END CERTIFICATE-----`
+  } catch (e) {
+    logger.error("Unable to retrieve Jwks certificate. Error: " + e)
   }
+  const payload = jwt.payload;
+  verify(token, secretKey, { algorithms: ["RS256"] }, function (error, decoded: Object) {
+    if (error) {
+      throw new Error("Invalid JWT token.");
+    }
 
+    if (decoded["sub"] !== payload.sub || decoded["iss"] !== payload.iss ||
+      decoded["iat"] !== payload.iat || decoded["exp"] !== payload.exp) {
+      throw new Error("Unmatch JWT token!")
+    }
+  })
+  return payload;
 }
 
 function getToken(authHeader: string): string {
