@@ -1,18 +1,16 @@
-# TODO: Change the name of the org 
 org: ace19214
-app: serverless-udacity-todo
-service: serverless-udacity-todo
+app: fruit-application
+service: fruit-application
 
 plugins:
-  - serverless-webpack
   - serverless-iam-roles-per-function
+  - serverless-plugin-tracing
   - serverless-reqvalidator-plugin
   - serverless-aws-documentation
 
 provider:
   name: aws
   runtime: nodejs12.x
-  # lambdaHashingVersion: '20201221'
 
   stage: ${opt:stage, 'dev'}
   region: ${opt:region, 'us-east-1'}
@@ -21,22 +19,20 @@ provider:
     lambda: true
     apiGateway: true
 
-  # Use these variables in the functions and resouorces section below. For example, 
-  # ${self:provider.environment.ATTACHMENT_S3_BUCKET}
   environment:
-    PROJECT_NAME: udacity-todo
-    TODOS_TABLE: udacity-todo-table-${self:provider.stage}
-    S3_BUCKET_NAME: udacity-todo-bucket-${self:provider.stage}
+    PROJECT_NAME: fruit-application
+    FRUITS_TABLE: fruit-table-${self:provider.stage}
+    S3_BUCKET_NAME: fruit-bucket-${self:provider.stage}
 
 custom:
   documentation:
     api:
       info:
         version: '1.0.0'
-        title: serverless-api
-        description: serverless-api
+        title: Servless Fruit Application
+        description: Build a fruit application use serverless to deploy
     models:
-      - name: CreateTodoRequest
+      - name: CreateFruitRequest
         contentType: "application/json"
         schema:
           required:
@@ -48,7 +44,7 @@ custom:
               type: string
             dueDate:
               type: string
-      - name: UpdateTodoRequest
+      - name: UpdateFruitRequest
         contentType: "application/json"
         schema:
           required:
@@ -63,121 +59,97 @@ custom:
               type: string
             done:
               type: boolean
-  
-  
-
-
-
-
-  # logs:
-  #   # Enable API Gateway logs
-  #   restApi: true
-
-  # iam:
-  #   role:
-  #     statements:
-  #       - Effect: Allow
-  #         Action:
-  #           - xray:PutTelemetryRecords
-  #           - xray:PutTraceSegments
-  #         Resource: "*"
-
 
 functions:
-
   Auth:
     handler: src/lambda/auth/auth0Authorizer.handler
 
-  #GetToDo
-  GetTodos:
-    handler: src/lambda/http/getTodos.handler
+  GetFruits:
+    handler: src/lambda/http/getFruits.handler
     events:
       - http:
           method: get
-          path: todos
+          path: fruits
           cors: true
           authorizer: Auth
-    iamRoleStatementsName: ${self:provider.environment.PROJECT_NAME}-get-todo-role-${self:provider.stage}
+    iamRoleStatementsName: ${self:provider.environment.PROJECT_NAME}-get-fruits-role-${self:provider.stage}
     iamRoleStatements:
       - Effect: Allow
         Action:
           - dynamodb:Query
-        Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.TODOS_TABLE}
+        Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.FRUITS_TABLE}
       - Effect: Allow
         Action:
           - xray:PutTraceSegments
         Resource: 
           - '*'
 
-  #CreateToDo 
-  CreateTodo:
-    handler: src/lambda/http/createTodo.handler
+  CreateFruit:
+    handler: src/lambda/http/createFruit.handler
     events:
       - http:
           method: post
-          path: todos
+          path: fruits
           cors: true
           authorizer: Auth
           documentation:
-            summary: "Create a new todo item"
-            description: "Create a new todo item"
+            summary: "Create a new fruit item"
+            description: "Create a new fruit item"
             requestModels:
-              "application/json": CreateTodoRequest
+              "application/json": CreateFruitRequest
           reqValidatorName: RequestBodyValidator
-    iamRoleStatementsName: ${self:provider.environment.PROJECT_NAME}-create-todo-role-${self:provider.stage}
+    iamRoleStatementsName: ${self:provider.environment.PROJECT_NAME}-create-fruit-role-${self:provider.stage}
     iamRoleStatements:
       - Effect: Allow
         Action:
           - dynamodb:PutItem
-        Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.TODOS_TABLE}
+        Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.FRUITS_TABLE}
       - Effect: Allow
         Action:
           - xray:PutTraceSegments
         Resource: 
           - '*'
 
-  #UpdateToDo
-  UpdateTodo:
-    handler: src/lambda/http/updateTodo.handler
+  UpdateFruit:
+    handler: src/lambda/http/updateFruit.handler
     events:
       - http:
           method: patch
-          path: todos/{todoId}
+          path: fruits/{fruitId}
           cors: true
           authorizer: Auth
           documentation:
-            summary: "Update a todo item"
-            description: "Update a todo item"
+            summary: "Update a fruit item"
+            description: "Update a fruit item"
             requestModels:
-              "application/json": UpdateTodoRequest
+              "application/json": UpdateFruitRequest
           reqValidatorName: RequestBodyValidator
-    iamRoleStatementsName: ${self:provider.environment.PROJECT_NAME}-update-todo-role-${self:provider.stage}
+    iamRoleStatementsName: ${self:provider.environment.PROJECT_NAME}-update-fruit-role-${self:provider.stage}
     iamRoleStatements:
       - Effect: Allow
         Action:
           - dynamodb:UpdateItem
-        Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.TODOS_TABLE}
+        Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.FRUITS_TABLE}
       - Effect: Allow
         Action:
           - xray:PutTraceSegments
         Resource: 
           - '*'
 
- #DeleteToDo
-  DeleteTodo:
-    handler: src/lambda/http/deleteTodo.handler
+  DeleteFruit:
+    handler: src/lambda/http/deleteFruit.handler
     events:
       - http:
           method: delete
-          path: todos/{todoId}
+          path: fruits/{fruitId}
           cors: true
           authorizer: Auth
-    iamRoleStatementsName: ${self:provider.environment.PROJECT_NAME}-delete-todo-role-${self:provider.stage}
+    iamRoleStatementsName: ${self:provider.environment.PROJECT_NAME}-delete-fruit-role-${self:provider.stage}
     iamRoleStatements:
       - Effect: Allow
         Action:
           - dynamodb:DeleteItem
-        Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.TODOS_TABLE}
+        Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.FRUITS_TABLE}
       - Effect: Allow
         Action:
           - xray:PutTraceSegments
@@ -190,7 +162,7 @@ functions:
     events:
       - http:
           method: post
-          path: todos/{todoId}/attachment
+          path: fruits/{fruitId}/attachment
           cors: true
           authorizer: Auth
     iamRoleStatementsName: ${self:provider.environment.PROJECT_NAME}-s3-upload-role-${self:provider.stage}
@@ -204,22 +176,21 @@ functions:
 
 resources:
   Resources:
-    # TODO: Add any necessary AWS resources
-    TodosTable:
+    FruitTable:
       Type: AWS::DynamoDB::Table
       Properties:
         AttributeDefinitions:
           - AttributeName: userId
             AttributeType: S
-          - AttributeName: todoId
+          - AttributeName: fruitId
             AttributeType: S
         KeySchema:
           - AttributeName: userId
             KeyType: HASH
-          - AttributeName: todoId
+          - AttributeName: fruitId
             KeyType: RANGE
         BillingMode: PAY_PER_REQUEST
-        TableName: ${self:provider.environment.TODOS_TABLE}
+        TableName: ${self:provider.environment.FRUITS_TABLE}
     onlyBody:
       Type: "AWS::ApiGateway::RequestValidator"
       Properties:

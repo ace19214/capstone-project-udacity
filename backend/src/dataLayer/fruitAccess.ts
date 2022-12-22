@@ -1,25 +1,25 @@
 import * as AWS from 'aws-sdk';
 import { DocumentClient } from 'aws-sdk/clients/dynamodb';
 import { createLogger } from '../utils/logger';
-import { TodoItem } from '../models/TodoItem';
-import { TodoUpdate } from '../models/TodoUpdate';
+import { FruitItem } from '../models/FruitItem';
+import { FruitUpdate } from '../models/FruitUpdate';
 import { Types } from 'aws-sdk/clients/s3';
 
-const logger = createLogger('TodosAccess')
+const logger = createLogger('FruitAccess')
 const AWSXRay = require('aws-xray-sdk');
 const XAWS = AWSXRay.captureAWS(AWS);
 
-export class TodosAccess{
+export class FruitAccess{
     constructor(
         private readonly docClient: DocumentClient = new XAWS.DynamoDB.DocumentClient(),
-        private readonly todoTable = process.env.TODOS_TABLE,
+        private readonly fruitTable = process.env.FRUIT_TABLE,
         private readonly s3Client: Types = new AWS.S3({signatureVersion: 'v4'}),
         private readonly s3BucketName = process.env.S3_BUCKET_NAME
     ){}
-    async getAllToDo(userId: string): Promise<TodoItem[]> { 
-        logger.info(`Get all todos for user with id ${userId}`)
+    async getAllFruit(userId: string): Promise<FruitItem[]> { 
+        logger.info(`Get all fruits with userId ${userId}`)
         const params = {
-            TableName: this.todoTable,
+            TableName: this.fruitTable,
             KeyConditionExpression: "#userId = :userId",
             ExpressionAttributeNames: {
                 "#userId": "userId"
@@ -33,30 +33,29 @@ export class TodosAccess{
         console.log(result);
         const items = result.Items;
 
-        return items as TodoItem[];
+        return items as FruitItem[];
     }
 
-    async createToDo(todoItem: TodoItem){
-        logger.info(`Create new todo for user with id: ${todoItem.userId}`)
+    async createFruit(fruitItem: FruitItem){
+        logger.info(`Create new fruit for user with id: ${fruitItem.userId}`)
         const params = {
-            TableName: this.todoTable,
-            Item: todoItem,
+            TableName: this.fruitTable,
+            Item: fruitItem,
         };
 
         const result = await this.docClient.put(params).promise();
         console.log(result);
 
-        return todoItem as TodoItem;
+        return fruitItem as FruitItem;
     }
 
-    async updateToDo(todoUpdate: TodoUpdate, todoId: string, userId: string): Promise<TodoUpdate> {
-        
-
+    async updateFruit(fruitUpdate: FruitUpdate, fruitId: string, userId: string): Promise<FruitUpdate> {
+    
         const params = {
-            TableName: this.todoTable,
+            TableName: this.fruitTable,
             Key: {
                 "userId": userId,
-                "todoId": todoId
+                "fruitId": fruitId
             },
             UpdateExpression: "set #a = :a, #b = :b, #c = :c",
             ExpressionAttributeNames: {
@@ -65,9 +64,9 @@ export class TodosAccess{
                 "#c": "done"
             },
             ExpressionAttributeValues: {
-                ":a": todoUpdate['name'],
-                ":b": todoUpdate['dueDate'],
-                ":c": todoUpdate['done']
+                ":a": fruitUpdate['name'],
+                ":b": fruitUpdate['dueDate'],
+                ":c": fruitUpdate['done']
             },
             ReturnValues: "ALL_NEW"
         };
@@ -76,17 +75,17 @@ export class TodosAccess{
         logger.info(`Update result: ${result}`)
         const attributes = result.Attributes;
 
-        return attributes as TodoUpdate;
+        return attributes as FruitUpdate;
     }
 
-    async deleteToDo(todoId: string, userId: string): Promise<string> {
-        logger.info("Deleting todos with id: ${todoId} of user with userId: ${userId}");
+    async deleteFruit(fruitId: string, userId: string): Promise<string> {
+        logger.info("Deleting fruit with id: ${fruitId} of user with userId: ${userId}");
 
         const params = {
-            TableName: this.todoTable,
+            TableName: this.fruitTable,
             Key: {
                 "userId": userId,
-                "todoId": todoId
+                "fruitId": fruitId
             },
         };
 
@@ -97,12 +96,12 @@ export class TodosAccess{
         return "" as string;
     }
 
-    async generateUploadUrl(todoId: string): Promise<string> {
-        logger.info(`Generating url`)
+    async generateUploadUrl(fruitId: string): Promise<string> {
+        logger.info(`Generating url...`)
 
         const url = this.s3Client.getSignedUrl('putObject', {
             Bucket: this.s3BucketName,
-            Key: todoId,
+            Key: fruitId,
             Expires: 1000,
         });
         logger.info(`Result url: ${url}`)

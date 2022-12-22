@@ -1,17 +1,16 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda'
 import 'source-map-support/register'
 import * as middy from 'middy'
-import { CreateTodoRequest } from '../../requests/CreateTodoRequest'
+import { CreateFruitRequest } from '../../requests/CreateFruitRequest'
 import { getJwtToken } from '../utils';
-import { createTodo } from '../../businessLogic/todos'
+import { createFruit } from '../../businessLogic/fruits'
 
 
 export const handler = middy(
   async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
-    const newTodo: CreateTodoRequest = JSON.parse(event.body)
-    // TODO: Implement creating a new TODO item
+    const newFruit: CreateFruitRequest = JSON.parse(event.body)
     const jwtToken = await getJwtToken(event)
-    const newItem = await createTodo(newTodo, jwtToken)
+    const newItem = await createFruit(newFruit, jwtToken)
 
     return {
       statusCode: 201,
