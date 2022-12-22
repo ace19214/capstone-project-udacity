@@ -14,106 +14,106 @@ import {
   Loader
 } from 'semantic-ui-react'
 
-import { createTodo, deleteTodo, getTodos, patchTodo } from '../api/todos-api'
+import { createFruit, deleteFruit, getFruits, patchFruit } from '../api/fruits-api'
 import Auth from '../auth/Auth'
-import { Todo } from '../types/Todo'
+import { Fruit } from '../types/Fruit'
 
-interface TodosProps {
+interface FruitsProps {
   auth: Auth
   history: History
 }
 
-interface TodosState {
-  todos: Todo[]
-  newTodoName: string
-  loadingTodos: boolean
+interface FruitsState {
+  fruits: Fruit[]
+  newFruitName: string
+  loadingFruits: boolean
 }
 
-export class Todos extends React.PureComponent<TodosProps, TodosState> {
-  state: TodosState = {
-    todos: [],
-    newTodoName: '',
-    loadingTodos: true
+export class Fruits extends React.PureComponent<FruitsProps, FruitsState> {
+  state: FruitsState = {
+    fruits: [],
+    newFruitName: '',
+    loadingFruits: true
   }
 
   handleNameChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    this.setState({ newTodoName: event.target.value })
+    this.setState({ newFruitName: event.target.value })
   }
 
-  onEditButtonClick = (todoId: string) => {
-    this.props.history.push(`/todos/${todoId}/edit`)
+  onEditButtonClick = (fruitId: string) => {
+    this.props.history.push(`/fruits/${fruitId}/edit`)
   }
 
-  onTodoCreate = async (event: React.ChangeEvent<HTMLButtonElement>) => {
+  onFruitCreate = async (event: React.ChangeEvent<HTMLButtonElement>) => {
     try {
       const dueDate = this.calculateDueDate()
-      const newTodo = await createTodo(this.props.auth.getIdToken(), {
-        name: this.state.newTodoName,
+      const newFruit = await createFruit(this.props.auth.getIdToken(), {
+        name: this.state.newFruitName,
         dueDate
       })
       this.setState({
-        todos: [...this.state.todos, newTodo],
-        newTodoName: ''
+        fruits: [...this.state.fruits, newFruit],
+        newFruitName: ''
       })
     } catch {
-      alert('Todo creation failed')
+      alert('Fruit creation failed')
     }
   }
 
-  onTodoDelete = async (todoId: string) => {
+  onFruitDelete = async (fruitId: string) => {
     try {
-      await deleteTodo(this.props.auth.getIdToken(), todoId)
+      await deleteFruit(this.props.auth.getIdToken(), fruitId)
       this.setState({
-        todos: this.state.todos.filter(todo => todo.todoId !== todoId)
+        fruits: this.state.fruits.filter(fruit => fruit.fruitId !== fruitId)
       })
     } catch {
-      alert('Todo deletion failed')
+      alert('Fruit deletion failed')
     }
   }
 
-  onTodoCheck = async (pos: number) => {
+  onFruitCheck = async (pos: number) => {
     try {
-      const todo = this.state.todos[pos]
-      await patchTodo(this.props.auth.getIdToken(), todo.todoId, {
-        name: todo.name,
-        dueDate: todo.dueDate,
-        done: !todo.done
+      const fruit = this.state.fruits[pos]
+      await patchFruit(this.props.auth.getIdToken(), fruit.fruitId, {
+        name: fruit.name,
+        dueDate: fruit.dueDate,
+        done: !fruit.done
       })
       this.setState({
-        todos: update(this.state.todos, {
-          [pos]: { done: { $set: !todo.done } }
+        fruits: update(this.state.fruits, {
+          [pos]: { done: { $set: !fruit.done } }
         })
       })
     } catch {
-      alert('Todo deletion failed')
+      alert('Fruit deletion failed')
     }
   }
 
   async componentDidMount() {
     try {
-      const todos = await getTodos(this.props.auth.getIdToken())
+      const fruits = await getFruits(this.props.auth.getIdToken())
       this.setState({
-        todos,
-        loadingTodos: false
+        fruits,
+        loadingFruits: false
       })
     } catch (e) {
-      alert(`Failed to fetch todos: ${(e as Error).message}`)
+      alert(`Failed to fetch fruits: ${(e as Error).message}`)
     }
   }
 
   render() {
     return (
       <div>
-        <Header as="h1">TODOs</Header>
+        <Header as="h1">Fruits</Header>
 
-        {this.renderCreateTodoInput()}
+        {this.renderCreateFruitInput()}
 
-        {this.renderTodos()}
+        {this.renderFruits()}
       </div>
     )
   }
 
-  renderCreateTodoInput() {
+  renderCreateFruitInput() {
     return (
       <Grid.Row>
         <Grid.Column width={16}>
@@ -123,7 +123,7 @@ export class Todos extends React.PureComponent<TodosProps, TodosState> {
               labelPosition: 'left',
               icon: 'add',
               content: 'New task',
-              onClick: this.onTodoCreate
+              onClick: this.onFruitCreate
             }}
             fluid
             actionPosition="left"
@@ -138,47 +138,47 @@ export class Todos extends React.PureComponent<TodosProps, TodosState> {
     )
   }
 
-  renderTodos() {
-    if (this.state.loadingTodos) {
+  renderFruits() {
+    if (this.state.loadingFruits) {
       return this.renderLoading()
     }
 
-    return this.renderTodosList()
+    return this.renderFruitsList()
   }
 
   renderLoading() {
     return (
       <Grid.Row>
         <Loader indeterminate active inline="centered">
-          Loading TODOs
+          Loading Fruits
         </Loader>
       </Grid.Row>
     )
   }
 
-  renderTodosList() {
+  renderFruitsList() {
     return (
       <Grid padded>
-        {this.state.todos.map((todo, pos) => {
+        {this.state.fruits.map((fruit, pos) => {
           return (
-            <Grid.Row key={todo.todoId}>
+            <Grid.Row key={fruit.fruitId}>
               <Grid.Column width={1} verticalAlign="middle">
                 <Checkbox
-                  onChange={() => this.onTodoCheck(pos)}
-                  checked={todo.done}
+                  onChange={() => this.onFruitCheck(pos)}
+                  checked={fruit.done}
                 />
               </Grid.Column>
               <Grid.Column width={10} verticalAlign="middle">
-                {todo.name}
+                {fruit.name}
               </Grid.Column>
               <Grid.Column width={3} floated="right">
-                {todo.dueDate}
+                {fruit.dueDate}
               </Grid.Column>
               <Grid.Column width={1} floated="right">
                 <Button
                   icon
                   color="blue"
-                  onClick={() => this.onEditButtonClick(todo.todoId)}
+                  onClick={() => this.onEditButtonClick(fruit.fruitId)}
                 >
                   <Icon name="pencil" />
                 </Button>
@@ -187,13 +187,13 @@ export class Todos extends React.PureComponent<TodosProps, TodosState> {
                 <Button
                   icon
                   color="red"
-                  onClick={() => this.onTodoDelete(todo.todoId)}
+                  onClick={() => this.onFruitDelete(fruit.fruitId)}
                 >
                   <Icon name="delete" />
                 </Button>
               </Grid.Column>
-              {todo.attachmentUrl && (
-                <Image src={todo.attachmentUrl} size="small" wrapped />
+              {fruit.attachmentUrl && (
+                <Image src={fruit.attachmentUrl} size="small" wrapped />
               )}
               <Grid.Column width={16}>
                 <Divider />

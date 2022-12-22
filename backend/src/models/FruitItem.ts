@@ -1,5 +1,6 @@
-export interface Todo {
-  todoId: string
+export interface FruitItem {
+  userId: string
+  fruitId: string
   createdAt: string
   name: string
   dueDate: string

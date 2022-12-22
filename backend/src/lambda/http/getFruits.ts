@@ -1,21 +1,24 @@
 import 'source-map-support/register'
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda'
 import * as middy from 'middy'
-import {generateUploadUrl } from '../../businessLogic/fruits'
+import { getAllFruit} from '../../businessLogic/fruits';
+import { getJwtToken } from '../utils';
 
 export const handler = middy(
   async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
-    const fruitId = event.pathParameters.fruitId
-    const URL = await generateUploadUrl(fruitId)
+    // Write your code here
+    const jwtToken = await getJwtToken(event);
+    const Fruits = await getAllFruit(jwtToken);
 
     return {
-      statusCode: 202,
+      statusCode: 200,
       headers: {
-        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Origin": "*"
       },
       body: JSON.stringify({
-        uploadUrl: URL,
+        "items": Fruits
       })
-    };
+    }
+
   }
 )
