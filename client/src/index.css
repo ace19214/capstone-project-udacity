@@ -8,6 +8,21 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+#root {
+  position: relative;
+  background-image: url("background.jpg");
+  background-size: cover;
+  font-weight: bold;
+}
+
+.ui.image img, .ui.image svg {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  border: 1px solid #CCCCCC;
+  border-radius: 5px;
+}
+
 code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;

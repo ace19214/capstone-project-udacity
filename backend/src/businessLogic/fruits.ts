@@ -1,38 +1,50 @@
+import { FruitAccess } from "../dataLayer/FruitAccess";
 import { CreateFruitRequest } from "../requests/CreateFruitRequest";
-import * as uuid from 'uuid'
-import { FruitAccess } from "../dataLayer/fruitAccess";
-import { FruitItem } from "../models/FruitItem";
-import { parseUserId } from "../auth/utils";
 import { UpdateFruitRequest } from "../requests/UpdateFruitRequest";
-import { FruitUpdate } from "../models/FruitUpdate";
+import { createUrl, generateUploadUrl, deleteUrl } from "../helpers/attachmentUtils";
+
+import * as uuid from 'uuid';
 
 const fruitAccess = new FruitAccess();
-export function createFruit(CreateFruitRequest: CreateFruitRequest, jwtToken: string) {
-    const userId = parseUserId(jwtToken);
-    const fruitId = uuid.v4();
-    const s3BucketName = process.env.S3_BUCKET_NAME
-    return fruitAccess.createFruit({
-        userId: userId,
-        fruitId: fruitId,
-        createdAt: new Date().getTime().toString(),
-        done: false,
-        ...CreateFruitRequest,
-    });
-    
+
+export async function getAllFruits(userId: string) {
+  return await fruitAccess.getAllFruits(userId);
 }
 
-export function getAllFruit(jwtToken: string): Promise<FruitItem[]> {
-    return fruitAccess.getAllFruit(parseUserId(jwtToken));
+export async function createFruit(createFruitRequest: CreateFruitRequest, userId: string) {
+  const fruitId = uuid.v4();
+  return await fruitAccess.createFruit({
+    userId: userId,
+    fruitId: fruitId,
+    createdAt: new Date().getTime().toString(),
+    name: createFruitRequest.name,
+    dueDate: createFruitRequest.dueDate,
+    done: false
+  });
 }
 
-export function updateFruit(updateFruitRequest: UpdateFruitRequest, fruitId: string, jwtToken: string): Promise<FruitUpdate> {
-    return fruitAccess.updateFruit(updateFruitRequest, fruitId, parseUserId(jwtToken));
+export async function updateFruit(updateFruitRequest: UpdateFruitRequest, userId: string, fruitId: string) {
+  return await fruitAccess.updateFruit({
+    name: updateFruitRequest.name,
+    dueDate: updateFruitRequest.dueDate,
+    done: updateFruitRequest.done
+  }, userId, fruitId);
 }
 
-export function deleteFruit(fruitId: string, jwtToken: string): Promise<string>{
-    return fruitAccess.deleteFruit(fruitId, parseUserId(jwtToken));
+export async function deleteFruit(userId: string, fruitId: string) {
+  const currentFruit = await fruitAccess.getFruitForUserById(userId, fruitId);
+  const attachmentUrl = currentFruit.attachmentUrl;
+  if (attachmentUrl) {
+    await deleteUrl(fruitId);
+  }
+  return await fruitAccess.deleteFruit(userId, fruitId);
 }
 
-export function generateUploadUrl(fruitId: string): Promise<string>{
-    return fruitAccess.generateUploadUrl(fruitId);
+export async function generateUrl(fruitId: string) {
+  return await generateUploadUrl(fruitId);
+}
+
+export async function updateUrlForFruit(userId: string, fruitId: string) {
+  const attachmentUrl = createUrl(fruitId);
+  return await fruitAccess.updateUrlForFruit(attachmentUrl, userId, fruitId);
 }
