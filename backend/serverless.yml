@@ -1,16 +1,17 @@
 org: ace19214
-app: fruit-application
-service: fruit-application
+app: fruit-serverless-app
+service: fruit-serverless-app
 
 plugins:
+  - serverless-webpack
   - serverless-iam-roles-per-function
-  - serverless-plugin-tracing
   - serverless-reqvalidator-plugin
   - serverless-aws-documentation
 
 provider:
   name: aws
   runtime: nodejs12.x
+  lambdaHashingVersion: '20201221'
 
   stage: ${opt:stage, 'dev'}
   region: ${opt:region, 'us-east-1'}
@@ -19,46 +20,28 @@ provider:
     lambda: true
     apiGateway: true
 
+  # Use these variables in the functions and resouorces section below. For example,
+  # ${self:provider.environment.S3_BUCKET_NAME}
   environment:
-    PROJECT_NAME: fruit-application
-    FRUITS_TABLE: fruit-table-${self:provider.stage}
-    S3_BUCKET_NAME: fruit-bucket-${self:provider.stage}
+    PROJECT_NAME: fruit-serverless-app
+    FRUITS_TABLE: fruit-table-duydd-${self:provider.stage}
+    FRUITS_CREATED_AT_INDEX: CreatedAtIndex
+    S3_BUCKET_NAME: fruit-bucket-duydd-${self:provider.stage}
 
 custom:
   documentation:
     api:
       info:
         version: '1.0.0'
-        title: Servless Fruit Application
-        description: Build a fruit application use serverless to deploy
+        title: Serverless Fruit App
+        description: A Fruits application using Serverless framework.
     models:
       - name: CreateFruitRequest
-        contentType: "application/json"
-        schema:
-          required:
-            - name
-            - dueDate
-          properties:
-            name:
-              minLength: 1
-              type: string
-            dueDate:
-              type: string
+        contentType: application/json
+        schema: ${file(models/create-fruit-model.json)}
       - name: UpdateFruitRequest
-        contentType: "application/json"
-        schema:
-          required:
-            - name
-            - dueDate
-            - done
-          properties:
-            name:
-              minLength: 1
-              type: string
-            dueDate:
-              type: string
-            done:
-              type: boolean
+        contentType: application/json
+        schema: ${file(models/update-fruit-model.json)}
 
 functions:
   Auth:
@@ -69,20 +52,15 @@ functions:
     events:
       - http:
           method: get
-          path: fruits
+          path: Fruits
           cors: true
           authorizer: Auth
-    iamRoleStatementsName: ${self:provider.environment.PROJECT_NAME}-get-fruits-role-${self:provider.stage}
+    iamRoleStatementsName: ${self:provider.environment.PROJECT_NAME}-get-fruit-role-${self:provider.stage}
     iamRoleStatements:
       - Effect: Allow
         Action:
           - dynamodb:Query
         Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.FRUITS_TABLE}
-      - Effect: Allow
-        Action:
-          - xray:PutTraceSegments
-        Resource: 
-          - '*'
 
   CreateFruit:
     handler: src/lambda/http/createFruit.handler
@@ -92,23 +70,18 @@ functions:
           path: fruits
           cors: true
           authorizer: Auth
-          documentation:
-            summary: "Create a new fruit item"
-            description: "Create a new fruit item"
-            requestModels:
-              "application/json": CreateFruitRequest
           reqValidatorName: RequestBodyValidator
+          documentation:
+            description: Create Fruit Request
+            requestModels:
+              application/json: CreateFruitRequest
     iamRoleStatementsName: ${self:provider.environment.PROJECT_NAME}-create-fruit-role-${self:provider.stage}
     iamRoleStatements:
       - Effect: Allow
         Action:
+          - dynamodb:Query
           - dynamodb:PutItem
         Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.FRUITS_TABLE}
-      - Effect: Allow
-        Action:
-          - xray:PutTraceSegments
-        Resource: 
-          - '*'
 
   UpdateFruit:
     handler: src/lambda/http/updateFruit.handler
@@ -118,23 +91,18 @@ functions:
           path: fruits/{fruitId}
           cors: true
           authorizer: Auth
-          documentation:
-            summary: "Update a fruit item"
-            description: "Update a fruit item"
-            requestModels:
-              "application/json": UpdateFruitRequest
           reqValidatorName: RequestBodyValidator
+          documentation:
+            description: Update Fruit Request
+            requestModels:
+              application/json: UpdateFruitRequest
     iamRoleStatementsName: ${self:provider.environment.PROJECT_NAME}-update-fruit-role-${self:provider.stage}
     iamRoleStatements:
       - Effect: Allow
         Action:
+          - dynamodb:Query
           - dynamodb:UpdateItem
         Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.FRUITS_TABLE}
-      - Effect: Allow
-        Action:
-          - xray:PutTraceSegments
-        Resource: 
-          - '*'
 
   DeleteFruit:
     handler: src/lambda/http/deleteFruit.handler
@@ -144,19 +112,18 @@ functions:
           path: fruits/{fruitId}
           cors: true
           authorizer: Auth
-    iamRoleStatementsName: ${self:provider.environment.PROJECT_NAME}-delete-fruit-role-${self:provider.stage}
+    iamRoleStatementsName: ${self:provider.environment.PROJECT_NAME}-delete-todo-role-${self:provider.stage}
     iamRoleStatements:
       - Effect: Allow
         Action:
+          - dynamodb:Query
           - dynamodb:DeleteItem
         Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.FRUITS_TABLE}
       - Effect: Allow
         Action:
-          - xray:PutTraceSegments
-        Resource: 
-          - '*'
+          - s3:DeleteObject
+        Resource: arn:aws:s3:::${self:provider.environment.S3_BUCKET_NAME}/*
 
-  # General uploadURL
   GenerateUploadUrl:
     handler: src/lambda/http/generateUploadUrl.handler
     events:
@@ -169,20 +136,54 @@ functions:
     iamRoleStatements:
       - Effect: Allow
         Action:
+          - xray:PutTelemetryRecords
+          - xray:PutTraceSegments
+        Resource: '*'
+      - Effect: Allow
+        Action:
+          - dynamodb:Query
+          - dynamodb:UpdateItem
+        Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.FRUITS_TABLE}
+      - Effect: Allow
+        Action:
           - s3:*
-          - xray:PutTraceSegments 
         Resource: arn:aws:s3:::${self:provider.environment.S3_BUCKET_NAME}/*
-
 
 resources:
   Resources:
-    FruitTable:
+    RequestBodyValidator:
+      Type: AWS::ApiGateway::RequestValidator
+      Properties:
+        Name: 'request-body-validator'
+        RestApiId:
+          Ref: ApiGatewayRestApi
+        ValidateRequestBody: true
+        ValidateRequestParameters: false
+
+    # Add necessary AWS resources. You will need at least the following AWS resources
+    # Fruit: Fill the properties
+    # Feel free to change the names as you like.
+    GatewayResponseDefault4XX:
+      Type: AWS::ApiGateway::GatewayResponse
+      Properties:
+        ResponseParameters:
+          gatewayresponse.header.Access-Control-Allow-Origin: "'*'"
+          gatewayresponse.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+          gatewayresponse.header.Access-Control-Allow-Methods: "'GET,OPTIONS,POST'"
+        ResponseType: DEFAULT_4XX
+        RestApiId:
+          Ref: ApiGatewayRestApi
+
+    # Fruit: Create a DynamoDB table with local secondary index and a composite key
+    FruitsTable:
       Type: AWS::DynamoDB::Table
       Properties:
         AttributeDefinitions:
           - AttributeName: userId
             AttributeType: S
           - AttributeName: fruitId
+            AttributeType: S
+          - AttributeName: createdAt
             AttributeType: S
         KeySchema:
           - AttributeName: userId
@@ -191,14 +192,18 @@ resources:
             KeyType: RANGE
         BillingMode: PAY_PER_REQUEST
         TableName: ${self:provider.environment.FRUITS_TABLE}
-    onlyBody:
-      Type: "AWS::ApiGateway::RequestValidator"
-      Properties:
-        Name: 'only-body'
-        RestApiId:
-          Ref: ApiGatewayRestApi
-        ValidateRequestBody: true
-        ValidateRequestParameters: false
+        LocalSecondaryIndexes:
+          - IndexName: ${self:provider.environment.FRUITS_CREATED_AT_INDEX}
+            KeySchema:
+              - AttributeName: userId
+                KeyType: HASH
+              - AttributeName: createdAt
+                KeyType: RANGE
+            Projection:
+              ProjectionType: ALL # What attributes will be copied to an index
+
+    # Fruit: Complete the bucket properties below.
+    # Do not forget to add the CorsConfiguration propoerty
     AttachmentsBucket:
       Type: AWS::S3::Bucket
       Properties:
@@ -215,39 +220,10 @@ resources:
                 - POST
                 - DELETE
                 - HEAD
-              MaxAge: 300
-   
-    RequestBodyValidator:
-      Type: AWS::ApiGateway::RequestValidator
-      Properties:
-        Name: 'request-body-validator'
-        RestApiId:
-          Ref: ApiGatewayRestApi
-        ValidateRequestBody: true
-        ValidateRequestParameters: false
+              MaxAge: 3000
 
-    GatewayResponseDefault4XX:
-      Type: AWS::ApiGateway::GatewayResponse
-      Properties:
-        ResponseParameters:
-          gatewayresponse.header.Access-Control-Allow-Origin: "'*'"
-          gatewayresponse.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
-          gatewayresponse.header.Access-Control-Allow-Methods: "'*'"
-        ResponseType: DEFAULT_4XX
-        RestApiId:
-          Ref: ApiGatewayRestApi
-
-    GatewayResponseDefault5XX:
-      Type: AWS::ApiGateway::GatewayResponse
-      Properties:
-        ResponseParameters:
-          gatewayresponse.header.Access-Control-Allow-Origin: "'*'"
-          gatewayresponse.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
-          gatewayresponse.header.Access-Control-Allow-Methods: "'GET,OPTIONS,POST,DELETE,PATCH,PUT'"
-        ResponseType: DEFAULT_5XX
-        RestApiId:
-          Ref: ApiGatewayRestApi 
-
+    # Fruit: Complete the policy below and attach it to the bucket defined above
+    # For cross referencing the name of the bucket, use "!Ref AttachmentsBucket"
     BucketPolicy:
       Type: AWS::S3::BucketPolicy
       Properties:

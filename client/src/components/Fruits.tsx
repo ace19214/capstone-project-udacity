@@ -97,7 +97,7 @@ export class Fruits extends React.PureComponent<FruitsProps, FruitsState> {
         loadingFruits: false
       })
     } catch (e) {
-      alert(`Failed to fetch fruits: ${(e as Error).message}`)
+      alert(`Failed to fetch Fruits: ${(e as Error).message}`)
     }
   }
 
@@ -122,12 +122,12 @@ export class Fruits extends React.PureComponent<FruitsProps, FruitsState> {
               color: 'teal',
               labelPosition: 'left',
               icon: 'add',
-              content: 'New task',
+              content: 'New Fruit',
               onClick: this.onFruitCreate
             }}
             fluid
             actionPosition="left"
-            placeholder="To change the world..."
+            placeholder="Add new fruit here..."
             onChange={this.handleNameChange}
           />
         </Grid.Column>
