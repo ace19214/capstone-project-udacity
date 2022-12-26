@@ -1,6 +1,6 @@
 # Fruit Application
 
-fruit-application.PNG
+![fruit-application](https://user-images.githubusercontent.com/49590959/209499848-a3d1d6c1-eb60-4dfe-a5ac-98cda8532173.PNG)
 
 Functions to be implemented
 To implement this project, you need to implement the following functions and configure them in the serverless.yml file:
